@@ -1,0 +1,20 @@
+[package]
+name = "autocshell"
+version = "0.1.0"
+authors = ["George Liontos <sdi1600094@di.uoa.gr>"]
+edition = "2018"
+readme = "README.md"
+categories = ["command-line-utilities"]
+exclude = ["build/**/*.o", "doc/**/*.html"]
+include = ["src/**/*", "Cargo.toml"]
+description = """
+autocshell is a command line tool that helps you generate auto completion
+scripts for your tools and for your shell(s).
+"""
+license = "GPL-2.0"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "2.33.1"
