@@ -1,12 +1,13 @@
 [package]
 name = "autocshell"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["George Liontos <sdi1600094@di.uoa.gr>"]
 edition = "2018"
 readme = "README.md"
 categories = ["command-line-utilities"]
 exclude = ["build/**/*.o", "doc/**/*.html"]
 include = ["src/**/*", "Cargo.toml"]
+repository = "https://github.com/GeorgeLS/autocshell"
 description = """
 autocshell is a command line tool that helps you generate auto completion
 scripts for your tools and for your shell(s).

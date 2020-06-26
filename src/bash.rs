@@ -1,8 +1,7 @@
 use crate::config::*;
 
-fn format_cases_for_bash(program_option: &ProgramOption) -> String {
-    let compreply = "
-            COMPREPLY=( $(compgen -f \"${current}\") )
+fn format_option_cases(program_option: &ProgramOption) -> String {
+    let compreply = "    COMPREPLY=( $(compgen -f \"${current}\") )
             return 0
             ;;
     ";
@@ -20,9 +19,11 @@ fn format_cases_for_bash(program_option: &ProgramOption) -> String {
     };
 
     std::format!("{}\n\t{}", short_case, long_case)
+        .trim()
+        .to_string()
 }
 
-fn generate_bash(cfg: &Config) -> String {
+pub fn generate_bash(cfg: &Config) -> String {
     let opts = cfg
         .prog_options
         .iter()
@@ -34,7 +35,7 @@ fn generate_bash(cfg: &Config) -> String {
         .prog_options
         .iter()
         .filter(|o| o.accepts_files)
-        .map(|o| format_cases_for_bash(o))
+        .map(|o| format_option_cases(o))
         .collect::<Vec<_>>()
         .join("");
 
@@ -66,12 +67,4 @@ complete -F _{prog_name}_completions -o bashdefault -o default {prog_name}",
         opts = opts,
         cases = cases
     )
-}
-
-pub fn generate_script(cfg: &Config) -> String {
-    if cfg.shell_type == "bash" {
-        generate_bash(cfg)
-    } else {
-        String::new()
-    }
 }

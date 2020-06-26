@@ -1,10 +1,10 @@
 use clap::{App, Arg};
 
+mod bash;
 mod config;
-mod generate;
+mod zsh;
 
 use config::*;
-use generate::*;
 use std::{
     error::Error,
     fs::File,
@@ -19,11 +19,16 @@ has the following format:
 
 shell:        <shell_type> (bash|zsh)
 program_name: <program_name>
+use_equals_sign: (true|false) [default: true] (available only for zsh) 
 option*:
-short?: <short_name> _
-                      |-> At least one should exist
-long?:  <long_name>  ‾
-accepts_files?:       (true|false) [default: false]
+    short?: <short_name> _
+                          |-> At least one should exist
+    long?:  <long_name>  ‾
+    takes_value?:         (true|false) [default: true]  (available only for zsh)
+    accepts_files?:       (true|false) [default: false]
+    accepts_multiple?:    (true|false) [default: false] (available only for zsh)
+    description?:                                       (available only for zsh)
+    fixed_values?:        [<fixed_value>, ...]          (available only for zsh)
 
 Field/Values explanation:
 
@@ -34,6 +39,12 @@ Mandatory: yes
 Field: program_name
 Value: The name of you program to generate the autocompletions for
 Mandatory: yes
+
+Field: use_equals_sign
+Value: Denotes whether we want to add an equals sign (=) after option completion    
+       This is valid only for zsh.
+Default: true
+Mandatory: no
 
 Field: option
 Value: None. The option field gets no value. It starts a new option description
@@ -47,9 +58,34 @@ Field: long
 Value: The long option description (-- must be included)
 Mandatory: no*
 
-Field: accepts_fiels
+Field: takes_value
+Value: Denotes whether this option takes an option or not (it's a flag)
+       This is valid only for zsh.
+Default: true
+Mandatory: no
+
+Field: accepts_files
 Value: Denotes whether that option takes files/directories as value(s). Must be true or false
 Default: false
+Mandatory: no
+
+Field: accepts_multiple
+Value: This value denotes whether the option can appear multiple times in the cli
+       or take multiple values (which is the same thing). This is valid only for zsh (for now).
+       It is ignored for other shells if provided.
+Default: false
+Mandatory: no
+
+Field: description
+Value: This value contains the description that will appear when auto completing this option.
+       This is valid only for zsh.
+       It is ignored for other shells if provided.
+Mandatory: no
+
+Field: fixed_values
+Value: This value is a bracketed comma separated list of fixed values that will be auto completed for that option
+       This is valid only for zsh.
+Mandatory: no
 
 * short and long fields are not mandatory, however if you define an option at least one of them must be present."
     );
@@ -67,9 +103,19 @@ fn write_script_to_file(script: String, filename: String, cfg: &Config) -> io::R
     Ok(())
 }
 
+fn generate_script(cfg: &Config) -> Option<String> {
+    if cfg.shell_type == "bash" {
+        Some(bash::generate_bash(cfg))
+    } else if cfg.shell_type == "zsh" {
+        Some(zsh::generate_zsh(cfg))
+    } else {
+        None
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("autocshell")
-        .version("1.0")
+        .version("2.0")
         .author("George Liontos <georgeliontos98@gmail.com>")
         .about("Generate autocompletion shell scripts for you application!")
         .arg(
@@ -111,11 +157,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         let cfg = Config::from_file(cfg_filename)?;
         let script = generate_script(&cfg);
 
-        if matches.is_present("output") {
-            let out_filename = matches.value_of("output").unwrap().to_string();
-            write_script_to_file(script, out_filename, &cfg)?;
-        } else {
-            println!("{}", script);
+        match script {
+            Some(script) => {
+                if matches.is_present("output") {
+                    let out_filename = matches.value_of("output").unwrap().to_string();
+                    write_script_to_file(script, out_filename, &cfg)?;
+                } else {
+                    println!("{}", script);
+                }
+            }
+            None => eprintln!("Shell `{}` is not supported", cfg.shell_type),
         }
     }
 
