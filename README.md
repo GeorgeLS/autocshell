@@ -23,7 +23,7 @@ option*:
     short?: <short_name> _
                           |-> At least one should exist
     long?:  <long_name>  ‾
-    takes_value?:         (true|false) [default: true]  (available only for zsh)
+    accepts_value?:       (true|false) [default: true]  (available only for zsh)
     accepts_files?:       (true|false) [default: false]
     accepts_multiple?:    (true|false) [default: false] (available only for zsh)
     description?:                                       (available only for zsh)
@@ -57,7 +57,7 @@ Field: long\
 Value: The long option description (-- must be included)\
 Mandatory: no*
 
-Field: takes_value\
+Field: accepts_value\
 Value: Denotes whether this option takes an option or not (it's a flag). This is valid only for zsh.\
 Default: true\
 Mandatory: no

@@ -58,7 +58,7 @@ Field: long
 Value: The long option description (-- must be included)
 Mandatory: no*
 
-Field: takes_value
+Field: accepts_value
 Value: Denotes whether this option takes an option or not (it's a flag)
        This is valid only for zsh.
 Default: true
@@ -115,7 +115,7 @@ fn generate_script(cfg: &Config) -> Option<String> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("autocshell")
-        .version("2.0")
+        .version("2.1")
         .author("George Liontos <georgeliontos98@gmail.com>")
         .about("Generate autocompletion shell scripts for you application!")
         .arg(
