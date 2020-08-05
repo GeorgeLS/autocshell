@@ -43,8 +43,7 @@ fn equals_sign_or_empty(cfg: &Config, option: &ProgramOption) -> &'static str {
 
 fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> String {
     let format_spec = |o: &ProgramOption, kind: OptionKind| {
-        std::format!(
-            "'*{short_or_long}{equals_sign}[{desc}]{file_opt}' \\",
+        std::format!("\t\t'*{short_or_long}{equals_sign}[{desc}]{file_opt}'",
             short_or_long = match kind {
                 OptionKind::Short => &o.short,
                 OptionKind::Long => &o.long,
@@ -72,15 +71,13 @@ fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> Str
         .to_string()
 }
 
-fn format_groups(cfg: &Config) -> String {
+fn format_groups(cfg: &Config) -> Vec<String> {
     let group_counter = RefCell::new(0);
     let group_fmt = |o: &ProgramOption| {
         *group_counter.borrow_mut() += 1;
         let comma = if o.short.is_empty() { "" } else { "," };
 
-        std::format!(
-            "+ '(group_{counter})' \\
-        {{{short}{comma}{long}}}'{equals}[{desc}]{file_opt}' \\",
+        std::format!("\t\t+ '(group_{counter})' \\\n\t\t{{{short}{comma}{long}}}'{equals}[{desc}]{file_opt}'",
             counter = *group_counter.borrow(),
             short = o.short,
             comma = comma,
@@ -95,20 +92,18 @@ fn format_groups(cfg: &Config) -> String {
         .iter()
         .filter(|o| !o.accepts_multiple && !o.short.is_empty() && !o.long.is_empty())
         .map(|o| group_fmt(o))
-        .collect::<Vec<_>>()
-        .join("\n\t")
+        .collect()
 }
 
-fn format_options_with_multiple_args(cfg: &Config) -> String {
+fn format_options_with_multiple_args(cfg: &Config) -> Vec<String> {
     cfg.prog_options
         .iter()
         .filter(|o| o.accepts_multiple)
         .map(|o| format_option_with_multiple_args(cfg, o))
-        .collect::<Vec<_>>()
-        .join("\n\t")
+        .collect()
 }
 
-fn format_options_with_one_representation(cfg: &Config) -> String {
+fn format_options_with_one_representation(cfg: &Config) -> Vec<String> {
     cfg.prog_options
         .iter()
         .filter(|o| !o.accepts_multiple && (o.short.is_empty() || o.long.is_empty()))
@@ -119,37 +114,34 @@ fn format_options_with_one_representation(cfg: &Config) -> String {
                 o.short.to_string()
             };
 
-            std::format!(
-                "'{short_or_long}{equals_sign}[{desc}]{file_opt}' \\",
+            std::format!("\t\t'{short_or_long}{equals_sign}[{desc}]{file_opt}'",
                 short_or_long = short_or_long,
                 equals_sign = equals_sign_or_empty(cfg, o),
                 desc = o.description,
                 file_opt = file_options(o)
             )
         })
-        .collect::<Vec<_>>()
-        .join("\n\t")
+        .collect()
 }
 
 pub fn generate_zsh(cfg: &Config) -> String {
     let opts_with_multiple_args = format_options_with_multiple_args(cfg);
     let groups = format_groups(cfg);
     let singles = format_options_with_one_representation(cfg);
+    let arguments = singles.iter()
+        .chain(opts_with_multiple_args.iter())
+        .chain(groups.iter())
+        .map(|a| a.as_str())
+        .collect::<Vec<_>>()
+        .join(" \\\n");
 
     std::format!(
-        "autoload -U compinit
-compinit
-compdef _{prog_name} {prog_name}
+        "compdef _{prog_name} {prog_name}
 
 function _{prog_name}() {{
-    _arguments \\
-        {multiple}
-        {singles}
-        {groups}
+\t_arguments \\\n\t\t{arguments}
 }}",
         prog_name = cfg.prog_name,
-        multiple = opts_with_multiple_args,
-        groups = groups,
-        singles = singles
+        arguments = arguments
     )
 }

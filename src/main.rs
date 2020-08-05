@@ -115,7 +115,7 @@ fn generate_script(cfg: &Config) -> Option<String> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("autocshell")
-        .version("2.1")
+        .version("2.2")
         .author("George Liontos <georgeliontos98@gmail.com>")
         .about("Generate autocompletion shell scripts for you application!")
         .arg(

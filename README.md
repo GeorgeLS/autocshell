@@ -81,3 +81,25 @@ Value: This value is a bracketed comma separated list of fixed values that will 
 Mandatory: no
 
 \* short and long fields are not mandatory, however if you define an option at least one of them must be present.
+
+# Adding the completions to the shell
+
+The recommended way to load and register the autocomplete functions for your programs is to create a folder where you will keep
+all of the generated files in there. \
+Then in you initialization shell script you can add the following: \
+```
+AUTOCOMPLETE_DIR=/path/to/dir
+for f in$(find ${AUTOCOMPLETE_DIR} -name "*.<shell_name>");
+do source $f;
+done
+```
+Of course the loop might need to be tailored to the shell's acceptable syntax.
+
+## Bash
+
+For bash you don't need anything special to do, just source the files as shown above.
+
+## Zsh
+
+For zsh you **must** have run compinit, otherwise compdef will fail. \
+If you are using oh-my-zsh that is done in .zshrc file, in the line oh-my-zsh.sh is sourced.
