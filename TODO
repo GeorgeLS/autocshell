@@ -2,3 +2,10 @@
 [x] Introduce boolean option `use_equal_sign` (global) so we will use <option>= in case of true
 [x] Introduce the ability to provide fixed values for specific options in order to help autocompletion
 [ ] Implement support for fish shell
+
+Bash:
+    [ ] Support descriptions for bash
+    [ ] Support equals sign for bash
+    ✔ Support fixed values for bash
+    [ ] Support takes_value for bash
+    [ ] Support multiple values for bash

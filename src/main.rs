@@ -28,7 +28,7 @@ option*:
     accepts_files?:       (true|false) [default: false]
     accepts_multiple?:    (true|false) [default: false] (available only for zsh)
     description?:                                       (available only for zsh)
-    fixed_values?:        [<fixed_value>, ...]          (available only for zsh)
+    fixed_values?:        [<fixed_value>, ...]
 
 Field/Values explanation:
 
@@ -115,7 +115,7 @@ fn generate_script(cfg: &Config) -> Option<String> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("autocshell")
-        .version("2.2")
+        .version("3.0")
         .author("George Liontos <georgeliontos98@gmail.com>")
         .about("Generate autocompletion shell scripts for you application!")
         .arg(
