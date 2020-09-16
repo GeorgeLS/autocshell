@@ -4,8 +4,8 @@
 [ ] Implement support for fish shell
 
 Bash:
-    [ ] Support descriptions for bash
+    [x] Support descriptions for bash
     [ ] Support equals sign for bash
-    ✔ Support fixed values for bash
+    [x] Support fixed values for bash
     [ ] Support takes_value for bash
     [ ] Support multiple values for bash

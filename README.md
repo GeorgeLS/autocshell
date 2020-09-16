@@ -26,7 +26,7 @@ option*:
     accepts_value?:       (true|false) [default: true]  (available only for zsh)
     accepts_files?:       (true|false) [default: false]
     accepts_multiple?:    (true|false) [default: false] (available only for zsh)
-    description?:                                       (available only for zsh)
+    description?:
     fixed_values?:        [<fixed_value>, ...]
 ```
 
