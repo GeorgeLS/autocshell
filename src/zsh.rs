@@ -61,12 +61,13 @@ fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> Str
         String::new()
     };
 
-    format!(
-        "{}{newline}{}",
-        short,
-        long,
-        newline = if short.is_empty() { "" } else { "\n" }
-    )
+    let maybe_newline = if !short.is_empty() && !long.is_empty() {
+        "\n"
+    } else {
+        ""
+    };
+
+    format!("{}{newline}{}", short, long, newline = maybe_newline)
 }
 
 fn format_option_group(cfg: &Config, option: &ProgramOption, group_num: u32) -> String {
@@ -110,10 +111,10 @@ pub fn generate_zsh(cfg: &Config) -> String {
         .program_options
         .iter()
         .map(|option| {
-            if option.has_one_represenation() {
-                format_option_with_one_representation(cfg, option)
-            } else if option.accepts_multiple {
+            if option.accepts_multiple {
                 format_option_with_multiple_args(cfg, option)
+            } else if option.has_one_represenation() {
+                format_option_with_one_representation(cfg, option)
             } else {
                 *group_counter.borrow_mut() += 1;
                 format_option_group(cfg, option, *group_counter.borrow())
