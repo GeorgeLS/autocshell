@@ -1,6 +1,6 @@
 [package]
 name = "autocshell"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["George Liontos <sdi1600094@di.uoa.gr>"]
 edition = "2018"
 readme = "README.md"
