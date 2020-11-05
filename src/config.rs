@@ -25,6 +25,18 @@ impl Default for ProgramOption {
     }
 }
 
+impl ProgramOption {
+    #[inline(always)]
+    pub fn has_one_represenation(&self) -> bool {
+        self.short.is_empty() ^ self.long.is_empty()
+    }
+
+    #[inline(always)]
+    pub fn is_help(&self) -> bool {
+        self.short == "-h" || self.long == "--help"
+    }
+}
+
 pub struct Config {
     pub shell: String,
     pub program_name: String,
