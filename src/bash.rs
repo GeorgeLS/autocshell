@@ -80,9 +80,9 @@ pub fn format_option(max_opt_len: usize, program_option: &ProgramOption) -> Stri
 }
 
 pub fn generate_bash(cfg: &Config) -> String {
-    let any_with_description = cfg.prog_options.iter().any(|o| !o.description.is_empty());
+    let any_with_description = cfg.program_options.iter().any(|o| !o.description.is_empty());
     let max_option_len = if any_with_description {
-        cfg.prog_options.iter().fold(0, |curr_max: usize, o| {
+        cfg.program_options.iter().fold(0, |curr_max: usize, o| {
             let opt = if o.long.is_empty() { &o.short } else { &o.long };
             std::cmp::max(curr_max, opt.len())
         })
@@ -91,7 +91,7 @@ pub fn generate_bash(cfg: &Config) -> String {
     };
 
     let opts = cfg
-        .prog_options
+        .program_options
         .iter()
         .map(|o| format_option(max_option_len, o))
         .collect::<Vec<_>>()
@@ -104,7 +104,7 @@ pub fn generate_bash(cfg: &Config) -> String {
     };
 
     let cases = cfg
-        .prog_options
+        .program_options
         .iter()
         .filter(|o| o.accepts_files || o.fixed_values.len() != 0)
         .map(|o| format_option_cases(o))
@@ -112,7 +112,7 @@ pub fn generate_bash(cfg: &Config) -> String {
         .join("");
 
     let fixed_value_vars = cfg
-        .prog_options
+        .program_options
         .iter()
         .filter(|o| o.fixed_values.len() > 0)
         .map(|o| {
@@ -183,7 +183,7 @@ _{prog_name}_completions() {{
 }}
 
 complete -F _{prog_name}_completions -o bashdefault -o default {prog_name}"##,
-        prog_name = cfg.prog_name,
+        prog_name = cfg.program_name,
         opts = opts,
         cases = cases,
         complete_current = complete_current,

@@ -26,18 +26,18 @@ impl Default for ProgramOption {
 }
 
 pub struct Config {
-    pub shell_type: String,
-    pub prog_name: String,
-    pub prog_options: Vec<ProgramOption>,
+    pub shell: String,
+    pub program_name: String,
+    pub program_options: Vec<ProgramOption>,
     pub use_equals_sign: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            shell_type: String::new(),
-            prog_name: String::new(),
-            prog_options: Vec::new(),
+            shell: String::new(),
+            program_name: String::new(),
+            program_options: Vec::new(),
             use_equals_sign: true,
         }
     }
@@ -66,27 +66,27 @@ impl Config {
 
                 if field == "shell" {
                     parsing_prog_opt = false;
-                    cfg.shell_type = value.to_string();
+                    cfg.shell = value.to_string();
                 } else if field == "program_name" {
                     parsing_prog_opt = false;
-                    cfg.prog_name = value.to_string();
+                    cfg.program_name = value.to_string();
                 } else if field == "accepts_files" {
                     let value = value == "true";
                     if parsing_prog_opt {
-                        cfg.prog_options.last_mut().unwrap().accepts_files = value;
+                        cfg.program_options.last_mut().unwrap().accepts_files = value;
                     }
                 } else if field == "accepts_multiple" {
                     let value = value == "true";
                     if parsing_prog_opt {
-                        cfg.prog_options.last_mut().unwrap().accepts_multiple = value;
+                        cfg.program_options.last_mut().unwrap().accepts_multiple = value;
                     }
                 } else if field == "description" {
                     if parsing_prog_opt {
-                        cfg.prog_options.last_mut().unwrap().description = value.to_string();
+                        cfg.program_options.last_mut().unwrap().description = value.to_string();
                     }
                 } else if field == "short" {
                     if parsing_prog_opt {
-                        cfg.prog_options.last_mut().unwrap().short = value.to_string();
+                        cfg.program_options.last_mut().unwrap().short = value.to_string();
                     } else {
                         return Err(
                             "Short field is not allowed outside of an option field".to_string()
@@ -94,7 +94,7 @@ impl Config {
                     }
                 } else if field == "long" {
                     if parsing_prog_opt {
-                        cfg.prog_options.last_mut().unwrap().long = value.to_string();
+                        cfg.program_options.last_mut().unwrap().long = value.to_string();
                     } else {
                         return Err(
                             "Long field is not allowed outside of an option field".to_string()
@@ -107,7 +107,7 @@ impl Config {
                 } else if field == "accepts_value" {
                     if parsing_prog_opt {
                         let value = value == "true";
-                        cfg.prog_options.last_mut().unwrap().accepts_value = value;
+                        cfg.program_options.last_mut().unwrap().accepts_value = value;
                     } else {
                         return Err(
                             "accepts_value field is not allowed outside of an option field"
@@ -120,9 +120,11 @@ impl Config {
                             (value.find('['), value.find(']'))
                         {
                             let fixed_values = &value[(list_start_index + 1)..list_end_index];
-                            let fixed_values: Vec<_> =
-                                fixed_values.split(',').map(|v| v.trim().to_string()).collect();
-                            cfg.prog_options.last_mut().unwrap().fixed_values = fixed_values;
+                            let fixed_values: Vec<_> = fixed_values
+                                .split(',')
+                                .map(|v| v.trim().to_string())
+                                .collect();
+                            cfg.program_options.last_mut().unwrap().fixed_values = fixed_values;
                         } else {
                             return Err("fixed_values list value is in incorrect format. Expected [<fixed_value>, ...]".to_string());
                         }
@@ -134,7 +136,7 @@ impl Config {
                     }
                 } else if field == "option" {
                     parsing_prog_opt = true;
-                    cfg.prog_options.push(ProgramOption::default());
+                    cfg.program_options.push(ProgramOption::default());
                 } else {
                     return Err(std::format!("Unknown field `{}`.", field));
                 }

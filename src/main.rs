@@ -1,17 +1,13 @@
-use clap::{App, Arg};
-
 mod bash;
+mod cli;
 mod config;
 mod zsh;
 
+use cli::Cli;
 use config::*;
-use std::{
-    error::Error,
-    fs::File,
-    io::{self, prelude::*},
-};
+use std::{error::Error, fs, io, process::exit};
 
-fn print_config_file_help() {
+fn show_cfg_help_and_exit() -> ! {
     println!(
         "
 The configuration file that you must provide as input (using -c or --config option)
@@ -19,16 +15,16 @@ has the following format:
 
 shell:        <shell_type> (bash|zsh)
 program_name: <program_name>
-use_equals_sign: (true|false) [default: true] (available only for zsh) 
+use_equals_sign: (true|false) [default: true] (available only for zsh)
 option*:
     short?: <short_name> _
                           |-> At least one should exist
     long?:  <long_name>  ‾
-    takes_value?:         (true|false) [default: true]  (available only for zsh)
-    accepts_files?:       (true|false) [default: false]
-    accepts_multiple?:    (true|false) [default: false] (available only for zsh)
+    accepts_value?:    (true|false) [default: true]  (available only for zsh)
+    accepts_files?:    (true|false) [default: false]
+    accepts_multiple?: (true|false) [default: false] (available only for zsh)
     description?:
-    fixed_values?:        [<fixed_value>, ...]
+    fixed_values?:     [<fixed_value>, ...]
 
 Field/Values explanation:
 
@@ -41,7 +37,7 @@ Value: The name of you program to generate the autocompletions for
 Mandatory: yes
 
 Field: use_equals_sign
-Value: Denotes whether we want to add an equals sign (=) after option completion    
+Value: Denotes whether we want to add an equals sign (=) after option completion
        This is valid only for zsh.
 Default: true
 Mandatory: no
@@ -89,24 +85,25 @@ Mandatory: no
 
 * short and long fields are not mandatory, however if you define an option at least one of them must be present."
     );
+
+    exit(0);
 }
 
-fn write_script_to_file(script: String, filename: String, cfg: &Config) -> io::Result<()> {
-    let out_filename = if filename.contains(cfg.shell_type.as_str()) {
-        filename
+fn write_script_to_file(script: &str, filename: &str, cfg: &Config) -> io::Result<()> {
+    let output_file = if filename.contains(&cfg.shell) {
+        filename.to_owned()
     } else {
-        std::format!("{}.{}", filename, cfg.shell_type)
+        std::format!("{}.{}", filename, cfg.shell)
     };
 
-    let mut out_file = File::create(out_filename)?;
-    out_file.write(script.as_bytes())?;
+    fs::write(output_file, script)?;
     Ok(())
 }
 
 fn generate_script(cfg: &Config) -> Option<String> {
-    if cfg.shell_type == "bash" {
+    if cfg.shell == "bash" {
         Some(bash::generate_bash(cfg))
-    } else if cfg.shell_type == "zsh" {
+    } else if cfg.shell == "zsh" {
         Some(zsh::generate_zsh(cfg))
     } else {
         None
@@ -114,60 +111,34 @@ fn generate_script(cfg: &Config) -> Option<String> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let matches = App::new("autocshell")
-        .version("0.4.0")
-        .author("George Liontos <georgeliontos98@gmail.com>")
-        .about("Generate autocompletion shell scripts for you application!")
-        .arg(
-            Arg::with_name("config")
-                .short("c")
-                .long("config")
-                .value_name("CONFIG_FILE")
-                .help("Specify the configuration filename to read the autocomplete specification from.")
-                .takes_value(true)
-                .min_values(1)
-                .max_values(1)
-                .required(true)
-                .required_unless("cfg_help")
-        )
-        .arg(
-            Arg::with_name("output")
-                .short("o")
-                .long("output")
-                .value_name("OUTPUT_FILE")
-                .help("Specify the name of the output file. The shell extension is appened automatically (e.g <out_name>.bash)")
-                .takes_value(true)
-                .min_values(1)
-                .max_values(1)
-        )
-        .arg(
-            Arg::with_name("cfg_help")
-                .long("config-help")
-                .takes_value(false)
-                .help("Show help/explanation about the configuration file")
-        )
-        .get_matches();
+    let cli = Cli::from_args();
 
-    if matches.is_present("cfg_help") {
-        print_config_file_help();
-    } else {
-        let cfg_filename = matches
-            .value_of("config")
-            .ok_or("You must provide a configuration file")?;
-        let cfg = Config::from_file(cfg_filename)?;
-        let script = generate_script(&cfg);
+    if cli.show_cfg_help {
+        show_cfg_help_and_exit();
+    }
 
-        match script {
-            Some(script) => {
-                if matches.is_present("output") {
-                    let out_filename = matches.value_of("output").unwrap().to_string();
-                    write_script_to_file(script, out_filename, &cfg)?;
-                } else {
-                    println!("{}", script);
-                }
-            }
-            None => eprintln!("Shell `{}` is not supported", cfg.shell_type),
+    let mut cfg = Config::from_file(&cli.cfg_file)?;
+    if cfg.shell.is_empty() {
+        if let Some(shell) = cli.shell {
+            cfg.shell = shell;
+        } else {
+            eprintln!("You must provide a shell either from command line or in config file");
+            exit(-1);
         }
+    }
+
+    let script = generate_script(&cfg);
+
+    match script {
+        Some(script) => match cli.output_file {
+            Some(output_file) => {
+                write_script_to_file(&script, &output_file, &cfg)?;
+            }
+            None => {
+                println!("{}", script);
+            }
+        },
+        None => eprintln!("Shell `{}` is not supported", cfg.shell),
     }
 
     Ok(())

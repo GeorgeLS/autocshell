@@ -43,7 +43,8 @@ fn equals_sign_or_empty(cfg: &Config, option: &ProgramOption) -> &'static str {
 
 fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> String {
     let format_spec = |o: &ProgramOption, kind: OptionKind| {
-        std::format!("\t\t'*{short_or_long}{equals_sign}[{desc}]{file_opt}'",
+        std::format!(
+            "\t\t'*{short_or_long}{equals_sign}[{desc}]{file_opt}'",
             short_or_long = match kind {
                 OptionKind::Short => &o.short,
                 OptionKind::Long => &o.long,
@@ -88,7 +89,7 @@ fn format_groups(cfg: &Config) -> Vec<String> {
         )
     };
 
-    cfg.prog_options
+    cfg.program_options
         .iter()
         .filter(|o| !o.accepts_multiple && !o.short.is_empty() && !o.long.is_empty())
         .map(|o| group_fmt(o))
@@ -96,7 +97,7 @@ fn format_groups(cfg: &Config) -> Vec<String> {
 }
 
 fn format_options_with_multiple_args(cfg: &Config) -> Vec<String> {
-    cfg.prog_options
+    cfg.program_options
         .iter()
         .filter(|o| o.accepts_multiple)
         .map(|o| format_option_with_multiple_args(cfg, o))
@@ -104,7 +105,7 @@ fn format_options_with_multiple_args(cfg: &Config) -> Vec<String> {
 }
 
 fn format_options_with_one_representation(cfg: &Config) -> Vec<String> {
-    cfg.prog_options
+    cfg.program_options
         .iter()
         .filter(|o| !o.accepts_multiple && (o.short.is_empty() || o.long.is_empty()))
         .map(|o| {
@@ -114,7 +115,8 @@ fn format_options_with_one_representation(cfg: &Config) -> Vec<String> {
                 o.short.to_string()
             };
 
-            std::format!("\t\t'{short_or_long}{equals_sign}[{desc}]{file_opt}'",
+            std::format!(
+                "\t\t'{short_or_long}{equals_sign}[{desc}]{file_opt}'",
                 short_or_long = short_or_long,
                 equals_sign = equals_sign_or_empty(cfg, o),
                 desc = o.description,
@@ -128,7 +130,8 @@ pub fn generate_zsh(cfg: &Config) -> String {
     let opts_with_multiple_args = format_options_with_multiple_args(cfg);
     let groups = format_groups(cfg);
     let singles = format_options_with_one_representation(cfg);
-    let arguments = singles.iter()
+    let arguments = singles
+        .iter()
         .chain(opts_with_multiple_args.iter())
         .chain(groups.iter())
         .map(|a| a.as_str())
@@ -141,7 +144,7 @@ pub fn generate_zsh(cfg: &Config) -> String {
 function _{prog_name}() {{
 \t_arguments \\\n\t\t{arguments}
 }}",
-        prog_name = cfg.prog_name,
+        prog_name = cfg.program_name,
         arguments = arguments
     )
 }
