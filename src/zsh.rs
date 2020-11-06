@@ -105,10 +105,26 @@ fn format_option_with_one_representation(cfg: &Config, option: &ProgramOption) -
     )
 }
 
+fn get_option_priority(option: &ProgramOption) -> u32 {
+    if option.has_one_represenation() {
+        1
+    } else if option.accepts_multiple {
+        2
+    } else {
+        3
+    }
+}
+
 pub fn generate_zsh(cfg: &Config) -> String {
     let group_counter = RefCell::new(0);
-    let arguments = cfg
-        .program_options
+    let mut program_options = cfg.program_options.clone();
+    program_options.sort_by(|lhs, rhs| {
+        let lhs_priority = get_option_priority(lhs);
+        let rhs_priority = get_option_priority(rhs);
+        lhs_priority.cmp(&rhs_priority)
+    });
+
+    let arguments = program_options
         .iter()
         .map(|option| {
             if option.accepts_multiple {

@@ -1,6 +1,6 @@
 use std::{default::Default, fs};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProgramOption {
     pub short: String,
     pub long: String,
