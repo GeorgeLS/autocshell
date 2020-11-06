@@ -17,11 +17,12 @@ fn file_options(option: &ProgramOption) -> String {
 }
 
 fn get_option_attributes(cfg: &Config, option: &ProgramOption) -> String {
-    let maybe_equals_sign = if !option.is_help() && cfg.use_equals_sign {
-        "="
-    } else {
-        ""
-    };
+    let maybe_equals_sign =
+        if !option.is_help() && !option.has_one_represenation() && cfg.use_equals_sign {
+            "="
+        } else {
+            ""
+        };
 
     format!(
         "{equals_sign}[{desc}]{file_options}",
