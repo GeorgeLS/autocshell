@@ -18,7 +18,7 @@ fn file_options(option: &ProgramOption) -> String {
 
 fn get_option_attributes(cfg: &Config, option: &ProgramOption) -> String {
     let maybe_equals_sign =
-        if !option.is_help() && !option.has_one_represenation() && cfg.use_equals_sign {
+        if !option.is_help() && !option.has_one_representation() && cfg.use_equals_sign {
             "="
         } else {
             ""
@@ -34,7 +34,7 @@ fn get_option_attributes(cfg: &Config, option: &ProgramOption) -> String {
 
 fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> String {
     let option_attributes = get_option_attributes(cfg, option);
-    let maybe_backslash = if option.has_one_represenation() {
+    let maybe_backslash = if option.has_one_representation() {
         ""
     } else {
         "\\"
@@ -73,7 +73,7 @@ fn format_option_with_multiple_args(cfg: &Config, option: &ProgramOption) -> Str
 
 fn format_option_group(cfg: &Config, option: &ProgramOption, group_num: u32) -> String {
     let option_attributes = get_option_attributes(cfg, option);
-    let maybe_comma = if option.has_one_represenation() {
+    let maybe_comma = if option.has_one_representation() {
         ""
     } else {
         ","
@@ -107,7 +107,7 @@ fn format_option_with_one_representation(cfg: &Config, option: &ProgramOption) -
 }
 
 fn get_option_priority(option: &ProgramOption) -> u32 {
-    if option.has_one_represenation() {
+    if option.has_one_representation() {
         1
     } else if option.accepts_multiple {
         2
@@ -130,7 +130,7 @@ pub fn generate_zsh(cfg: &Config) -> String {
         .map(|option| {
             if option.accepts_multiple {
                 format_option_with_multiple_args(cfg, option)
-            } else if option.has_one_represenation() {
+            } else if option.has_one_representation() {
                 format_option_with_one_representation(cfg, option)
             } else {
                 *group_counter.borrow_mut() += 1;

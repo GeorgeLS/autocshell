@@ -1,4 +1,9 @@
-use std::{default::Default, fs};
+use std::{
+    default::Default,
+    fs,
+    iter::{Enumerate, Peekable},
+    str::Lines,
+};
 
 #[derive(Debug, Clone)]
 pub struct ProgramOption {
@@ -27,7 +32,7 @@ impl Default for ProgramOption {
 
 impl ProgramOption {
     #[inline(always)]
-    pub fn has_one_represenation(&self) -> bool {
+    pub fn has_one_representation(&self) -> bool {
         self.short.is_empty() ^ self.long.is_empty()
     }
 
@@ -56,135 +61,93 @@ impl Default for Config {
     }
 }
 
+#[inline]
+fn check_bool(value: &str) -> Option<bool> {
+    if value == "true" {
+        Some(true)
+    } else if value == "false" {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+#[inline]
+fn boolean_value_error(field: &str, line_num: usize) -> String {
+    format!("'{}' accepts only true or false (line {})", field, line_num)
+}
+
+type FieldValueResult<'l> = Result<Option<(&'l str, &'l str, usize)>, String>;
+
+fn next_field_and_value_base(line: &str, line_num: usize) -> FieldValueResult<'_> {
+    let line_num = line_num + 1;
+    let mut colon_split = line.split(':');
+    if let (Some(field), Some(value)) = (colon_split.next(), colon_split.next()) {
+        let field = field.trim();
+        let value = value.trim();
+
+        if field.is_empty() {
+            return Err(format!("Missing field in line {}", line_num));
+        } else if value.is_empty() && field != "option" {
+            return Err(format!("Missing value in line {}", line_num));
+        }
+
+        Ok(Some((field, value, line_num)))
+    } else {
+        Ok(None)
+    }
+}
+
+fn peek_field_and_value<'l>(
+    line_it: &'l mut Peekable<Enumerate<Lines>>,
+) -> FieldValueResult<'l> {
+    if let Some((line_num, line)) = line_it.peek() {
+        next_field_and_value_base(line, *line_num)
+    } else {
+        Ok(None)
+    }
+}
+
+fn next_field_and_value<'l>(
+    line_it: &'l mut Peekable<Enumerate<Lines>>
+) -> FieldValueResult<'l> {
+    if let Some((line_num, line)) = line_it.next() {
+        next_field_and_value_base(line, line_num)
+    } else {
+        Ok(None)
+    }
+}
+
 impl Config {
+    pub fn from_file(cfg_filename: &str) -> Result<Self, String> {
+        let cfg_contents = fs::read_to_string(cfg_filename)
+            .or_else(|_| Err("Couldn't read configuration file.".to_string()))?;
+
+        let cfg = Config::from_string(&cfg_contents)?;
+        Ok(cfg)
+    }
+
     pub fn from_string(cfg_str: &str) -> Result<Self, String> {
         if cfg_str.is_empty() {
             return Err("Configuration is empty".to_string());
         }
 
         let mut cfg = Config::default();
-        let mut parsing_prog_opt = false;
+        let mut line_it = cfg_str.lines().enumerate().peekable();
 
-        let out_of_option_error = |field: &str, line_num: usize| -> Result<Config, String> {
-            Err(format!(
-                "'{}' field is not allowed outside of an option field (line {})",
-                field, line_num
-            ))
-        };
-
-        let boolean_value_error = |field: &str, line_num: usize| -> Result<Config, String> {
-            Err(format!(
-                "'{}' accepts only true or false (line {})",
-                field, line_num
-            ))
-        };
-
-        for (line_num, line) in cfg_str.lines().enumerate() {
-            let line_num = line_num + 1;
-            let mut colon_split = line.split(':');
-
-            if let (Some(field), Some(value)) = (colon_split.next(), colon_split.next()) {
-                let field = field.trim();
-                let value = value.trim();
-
-                if field.is_empty() {
-                    return Err(format!("Missing field in line {}", line_num));
-                } else if value.is_empty() && field != "option" {
-                    return Err(format!("Missing value in line {}", line_num));
+        while let Some((field, value, line_num)) = next_field_and_value(&mut line_it)? {
+            match field {
+                "shell" => cfg.shell = value.to_owned(),
+                "program_name" => cfg.program_name = value.to_owned(),
+                "use_equals_sign" => {
+                    cfg.use_equals_sign =
+                        check_bool(value).ok_or(boolean_value_error(field, line_num))?;
                 }
-
-                if field == "shell" {
-                    parsing_prog_opt = false;
-                    cfg.shell = value.to_string();
-                } else if field == "program_name" {
-                    parsing_prog_opt = false;
-                    cfg.program_name = value.to_string();
-                } else if field == "accepts_files" {
-                    let value = if value == "true" {
-                        true
-                    } else if value == "false" {
-                        false
-                    } else {
-                        return boolean_value_error(field, line_num);
-                    };
-
-                    if parsing_prog_opt {
-                        cfg.program_options.last_mut().unwrap().accepts_files = value;
-                    }
-                } else if field == "accepts_multiple" {
-                    let value = if value == "true" {
-                        true
-                    } else if value == "false" {
-                        false
-                    } else {
-                        return boolean_value_error(field, line_num);
-                    };
-
-                    if parsing_prog_opt {
-                        cfg.program_options.last_mut().unwrap().accepts_multiple = value;
-                    }
-                } else if field == "description" {
-                    if parsing_prog_opt {
-                        cfg.program_options.last_mut().unwrap().description = value.to_string();
-                    }
-                } else if field == "short" {
-                    if parsing_prog_opt {
-                        cfg.program_options.last_mut().unwrap().short = value.to_string();
-                    } else {
-                        return out_of_option_error(field, line_num);
-                    }
-                } else if field == "long" {
-                    if parsing_prog_opt {
-                        cfg.program_options.last_mut().unwrap().long = value.to_string();
-                    } else {
-                        return out_of_option_error(field, line_num);
-                    }
-                } else if field == "use_equals_sign" {
-                    parsing_prog_opt = false;
-                    let value = if value == "true" {
-                        true
-                    } else if value == "false" {
-                        false
-                    } else {
-                        return boolean_value_error(field, line_num);
-                    };
-
-                    cfg.use_equals_sign = value;
-                } else if field == "accepts_value" {
-                    if parsing_prog_opt {
-                        let value = if value == "true" {
-                            true
-                        } else if value == "false" {
-                            false
-                        } else {
-                            return boolean_value_error(field, line_num);
-                        };
-
-                        cfg.program_options.last_mut().unwrap().accepts_value = value;
-                    } else {
-                        return out_of_option_error(field, line_num);
-                    }
-                } else if field == "fixed_values" {
-                    if parsing_prog_opt {
-                        if let (Some(list_start_index), Some(list_end_index)) =
-                            (value.find('['), value.find(']'))
-                        {
-                            let fixed_values = &value[(list_start_index + 1)..list_end_index];
-                            let fixed_values: Vec<_> = fixed_values
-                                .split(',')
-                                .map(|v| v.trim().to_string())
-                                .collect();
-                            cfg.program_options.last_mut().unwrap().fixed_values = fixed_values;
-                        } else {
-                            return Err("fixed_values list value is in incorrect format. Expected [<fixed_value>, ...]".to_string());
-                        }
-                    } else {
-                        return out_of_option_error(field, line_num);
-                    }
-                } else if field == "option" {
-                    parsing_prog_opt = true;
-                    cfg.program_options.push(ProgramOption::default());
-                } else {
+                "option" => {
+                    let program_option = Config::parse_program_option(&mut line_it)?;
+                    cfg.program_options.push(program_option);
+                }
+                _ => {
                     return Err(format!("Unknown field '{}' in line {}", field, line_num));
                 }
             }
@@ -201,11 +164,59 @@ impl Config {
         Ok(cfg)
     }
 
-    pub fn from_file(cfg_filename: &str) -> Result<Self, String> {
-        let cfg_contents = fs::read_to_string(cfg_filename)
-            .or_else(|_| Err("Couldn't read configuration file."))?;
+    fn parse_program_option(
+        line_it: &mut Peekable<Enumerate<Lines>>,
+    ) -> Result<ProgramOption, String> {
+        let mut program_option = ProgramOption::default();
+        while let Some((field, value, line_num)) = peek_field_and_value(line_it)? {
+            if field == "option" {
+                break;
+            }
 
-        Ok(Config::from_string(&cfg_contents)?)
+            match field {
+                "short" => program_option.short = value.to_owned(),
+                "long" => program_option.long = value.to_owned(),
+                "description" => program_option.description = value.replace("'", "\\'"),
+                "accepts_files" => {
+                    program_option.accepts_files =
+                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                }
+                "accepts_multiple" => {
+                    program_option.accepts_multiple =
+                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                }
+                "accepts_value" => {
+                    program_option.accepts_value =
+                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                }
+                "fixed_values" => {
+                    let fixed_values = Config::parse_fixed_values(value, line_num)?;
+                    program_option.fixed_values = fixed_values;
+                }
+                _ => return Err(format!("Unknown field '{}' in line {}", field, line_num)),
+            }
+
+            line_it.next();
+        }
+
+        Ok(program_option)
+    }
+
+    fn parse_fixed_values(fixed_values: &str, line_num: usize) -> Result<Vec<String>, String> {
+        if let (Some(start), Some(end)) = (fixed_values.find('['), fixed_values.find(']')) {
+            let fixed_values = &fixed_values[(start + 1)..end];
+            let fixed_values: Vec<_> = fixed_values
+                .split(',')
+                .map(|v| v.trim().replace("'", "\\'"))
+                .collect();
+
+            Ok(fixed_values)
+        } else {
+            Err(format!(
+                "'fixed_values' has incorrect format. Expected [<fixed_value>, ...] (line {})",
+                line_num
+            ))
+        }
     }
 }
 
@@ -259,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn config_without_options_shoud_fail() {
+    fn config_without_options_should_fail() {
         let cfg_str = "\
             shell: zsh
             program_name: prog
@@ -305,7 +316,7 @@ mod tests {
         assert!(cfg.is_err());
         assert_eq!(
             cfg.unwrap_err(),
-            "'short' field is not allowed outside of an option field (line 3)"
+            "Unknown field 'short' in line 3"
         );
     }
 
@@ -455,5 +466,26 @@ mod tests {
         assert_eq!(opt_2.short, "-o");
         assert_eq!(opt_2.long, "--output");
         assert_eq!(opt_2.fixed_values, vec!["log_file"]);
+    }
+
+    #[test]
+    fn description_and_fixed_values_should_be_escaped() {
+        let cfg_str = "\
+            program_name: test
+            option:
+                short: -q
+                long: --quiet
+                description: Don't display output
+            option:
+                long: --value
+                fixed_values: [don't, it's]
+        ";
+
+        let cfg = Config::from_string(cfg_str);
+        assert!(cfg.is_ok());
+        let cfg = cfg.unwrap();
+
+        assert_eq!(cfg.program_options[0].description, "Don\\'t display output");
+        assert_eq!(cfg.program_options[1].fixed_values, vec!["don\\'t", "it\\'s"]);
     }
 }
