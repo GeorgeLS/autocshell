@@ -9,7 +9,7 @@ pub fn get_fixed_values_var_name_for_option(program_option: &ProgramOption) -> S
 
     format!(
         "{prefix}_fixed_values",
-        prefix = option.trim_start_matches("-")
+        prefix = option.trim_start_matches('-')
     )
 }
 
@@ -22,7 +22,7 @@ fn format_option_cases(program_option: &ProgramOption) -> String {
         "#,
         if program_option.accepts_files {
             "-f".to_owned()
-        } else if program_option.fixed_values.len() != 0 {
+        } else if !program_option.fixed_values.is_empty() {
             format!(
                 r#"-W "${{{}}}" --"#,
                 get_fixed_values_var_name_for_option(program_option)
@@ -80,7 +80,10 @@ pub fn format_option(max_opt_len: usize, program_option: &ProgramOption) -> Stri
 }
 
 pub fn generate_bash(cfg: &Config) -> String {
-    let any_with_description = cfg.program_options.iter().any(|o| !o.description.is_empty());
+    let any_with_description = cfg
+        .program_options
+        .iter()
+        .any(|o| !o.description.is_empty());
     let max_option_len = if any_with_description {
         cfg.program_options.iter().fold(0, |curr_max: usize, o| {
             let opt = if o.long.is_empty() { &o.short } else { &o.long };
@@ -106,7 +109,7 @@ pub fn generate_bash(cfg: &Config) -> String {
     let cases = cfg
         .program_options
         .iter()
-        .filter(|o| o.accepts_files || o.fixed_values.len() != 0)
+        .filter(|o| o.accepts_files || !o.fixed_values.is_empty())
         .map(|o| format_option_cases(o))
         .collect::<Vec<_>>()
         .join("");
@@ -114,7 +117,7 @@ pub fn generate_bash(cfg: &Config) -> String {
     let fixed_value_vars = cfg
         .program_options
         .iter()
-        .filter(|o| o.fixed_values.len() > 0)
+        .filter(|o| !o.fixed_values.is_empty())
         .map(|o| {
             format!(
                 r#"local {fixed_values_var}="{fixed_values}""#,
@@ -125,7 +128,8 @@ pub fn generate_bash(cfg: &Config) -> String {
         .collect::<Vec<_>>()
         .join("\n\t");
 
-    let complete_current = format!(r#"COMPREPLY=( $(compgen -W "${{opts}}" -- "${{current}}") )"#);
+    let complete_current =
+        r#"COMPREPLY=( $(compgen -W "${{opts}}" -- "${{current}}") )"#.to_string();
 
     let ifs_change = if any_with_description {
         r#"

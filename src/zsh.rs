@@ -6,7 +6,7 @@ fn file_options(option: &ProgramOption) -> String {
     if option.accepts_files {
         ":file:_files".to_string()
     } else if option.accepts_value {
-        if option.fixed_values.len() > 0 {
+        if !option.fixed_values.is_empty() {
             std::format!(": :({})", option.fixed_values.join(" "))
         } else {
             ": :".to_string()

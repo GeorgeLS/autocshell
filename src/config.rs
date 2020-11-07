@@ -98,9 +98,7 @@ fn next_field_and_value_base(line: &str, line_num: usize) -> FieldValueResult<'_
     }
 }
 
-fn peek_field_and_value<'l>(
-    line_it: &'l mut Peekable<Enumerate<Lines>>,
-) -> FieldValueResult<'l> {
+fn peek_field_and_value<'l>(line_it: &'l mut Peekable<Enumerate<Lines>>) -> FieldValueResult<'l> {
     if let Some((line_num, line)) = line_it.peek() {
         next_field_and_value_base(line, *line_num)
     } else {
@@ -108,9 +106,7 @@ fn peek_field_and_value<'l>(
     }
 }
 
-fn next_field_and_value<'l>(
-    line_it: &'l mut Peekable<Enumerate<Lines>>
-) -> FieldValueResult<'l> {
+fn next_field_and_value<'l>(line_it: &'l mut Peekable<Enumerate<Lines>>) -> FieldValueResult<'l> {
     if let Some((line_num, line)) = line_it.next() {
         next_field_and_value_base(line, line_num)
     } else {
@@ -121,7 +117,7 @@ fn next_field_and_value<'l>(
 impl Config {
     pub fn from_file(cfg_filename: &str) -> Result<Self, String> {
         let cfg_contents = fs::read_to_string(cfg_filename)
-            .or_else(|_| Err("Couldn't read configuration file.".to_string()))?;
+            .map_err(|_| "Couldn't read configuration file.".to_string())?;
 
         let cfg = Config::from_string(&cfg_contents)?;
         Ok(cfg)
@@ -141,7 +137,7 @@ impl Config {
                 "program_name" => cfg.program_name = value.to_owned(),
                 "use_equals_sign" => {
                     cfg.use_equals_sign =
-                        check_bool(value).ok_or(boolean_value_error(field, line_num))?;
+                        check_bool(value).ok_or_else(|| boolean_value_error(field, line_num))?;
                 }
                 "option" => {
                     let program_option = Config::parse_program_option(&mut line_it)?;
@@ -179,15 +175,15 @@ impl Config {
                 "description" => program_option.description = value.replace("'", "\\'"),
                 "accepts_files" => {
                     program_option.accepts_files =
-                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                        check_bool(value).ok_or_else(|| boolean_value_error(field, line_num))?
                 }
                 "accepts_multiple" => {
                     program_option.accepts_multiple =
-                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                        check_bool(value).ok_or_else(|| boolean_value_error(field, line_num))?
                 }
                 "accepts_value" => {
                     program_option.accepts_value =
-                        check_bool(value).ok_or(boolean_value_error(field, line_num))?
+                        check_bool(value).ok_or_else(|| boolean_value_error(field, line_num))?
                 }
                 "fixed_values" => {
                     let fixed_values = Config::parse_fixed_values(value, line_num)?;
@@ -314,10 +310,7 @@ mod tests {
 
         let cfg = Config::from_string(cfg_str);
         assert!(cfg.is_err());
-        assert_eq!(
-            cfg.unwrap_err(),
-            "Unknown field 'short' in line 3"
-        );
+        assert_eq!(cfg.unwrap_err(), "Unknown field 'short' in line 3");
     }
 
     #[test]
@@ -486,6 +479,9 @@ mod tests {
         let cfg = cfg.unwrap();
 
         assert_eq!(cfg.program_options[0].description, "Don\\'t display output");
-        assert_eq!(cfg.program_options[1].fixed_values, vec!["don\\'t", "it\\'s"]);
+        assert_eq!(
+            cfg.program_options[1].fixed_values,
+            vec!["don\\'t", "it\\'s"]
+        );
     }
 }
