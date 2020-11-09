@@ -9,7 +9,7 @@ pub struct Cli {
 
 fn build_app<'a, 'b>() -> App<'a, 'b> {
     App::new("autocshell")
-        .version("0.5.2")
+        .version("0.5.3")
         .author("George Liontos <georgeliontos98@gmail.com>")
         .about("Generate autocompletion shell scripts for you application!")
         .arg(
